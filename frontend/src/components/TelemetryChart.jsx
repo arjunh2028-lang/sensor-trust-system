@@ -177,6 +177,14 @@ export function TelemetryChart({ history = [], metadata }) {
 
       <div className="relative w-full h-[340px]">
         <canvas ref={canvasRef}></canvas>
+        {history.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-[2px] rounded-lg border border-slate-800 text-center p-6">
+            <span className="text-sm font-semibold text-slate-200 mb-1">Telemetry Stream on Standby</span>
+            <span className="text-xs text-slate-400 max-w-md leading-relaxed">
+              Automatic background simulation is disabled. Please upload a sensor CSV file above or click &quot;Ingest Mock CSV&quot; to begin plotting time-series telemetry.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

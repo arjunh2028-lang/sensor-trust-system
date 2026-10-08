@@ -15,7 +15,14 @@ export function VerdictBanner({ assessment, metadata, onRecalibrate }) {
   const driftVal = assessment.drift_metric ?? assessment.indicators?.drift_metric ?? 0;
   const status = assessment.status || assessment.classification || 'NORMAL';
 
-  if (status === 'GENUINE_CRITICAL_RISK' || status === 'GENUINE_CRITICAL_ALARM') {
+  if (status === 'STANDBY') {
+    bannerClass = 'border-slate-800 bg-[#111622]';
+    badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+    badgeText = '⏸️ AWAITING CSV STREAM';
+    title = 'Sensor Dual-Assessment Pipeline on Standby';
+    summary = 'Automatic background simulation is disabled. The system will NOT simulate any sensor readings until you upload or ingest a sensor CSV file above.';
+    Icon = Compass;
+  } else if (status === 'GENUINE_CRITICAL_RISK' || status === 'GENUINE_CRITICAL_ALARM') {
     bannerClass = 'border-rose-500/70 bg-rose-950/20 glow-rose';
     badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse';
     badgeText = '🚨 GENUINE CRITICAL RISK';

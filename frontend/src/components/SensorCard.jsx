@@ -7,11 +7,16 @@ export function SensorCard({ metadata, assessment, isSelected, onClick }) {
   let cardBorder = isSelected ? 'border-cyan-500 shadow-lg shadow-cyan-500/15' : 'border-slate-800 hover:border-slate-700';
   let cardBg = isSelected ? 'bg-slate-900/90' : 'bg-[#111622]';
 
-  const val = assessment ? (assessment.value ?? assessment.raw_value ?? 0) : null;
-  const valStr = val !== null ? `${val.toFixed(1)} ${metadata.unit}` : `-- ${metadata.unit}`;
-  const trustScore = assessment ? `${Math.round((assessment.trust_score ?? 1.0) * 100)}%` : '100%';
+  const isStandby = !assessment || assessment.status === 'STANDBY' || assessment.value === null || assessment.value === undefined;
+  const val = assessment ? (assessment.value ?? assessment.raw_value ?? null) : null;
+  const valStr = (!isStandby && val !== null && val !== undefined) ? `${val.toFixed(1)} ${metadata.unit}` : `-- ${metadata.unit}`;
+  const trustScore = isStandby ? 'Standby' : `${Math.round((assessment.trust_score ?? 1.0) * 100)}%`;
 
-  if (assessment) {
+  if (isStandby) {
+    cardBorder = isSelected ? 'border-cyan-500 shadow-md shadow-cyan-500/10' : 'border-slate-800 hover:border-slate-700';
+    trustColor = 'text-slate-400 bg-slate-800/80 border-slate-700';
+    trustText = 'STANDBY';
+  } else if (assessment) {
     const status = assessment.status || assessment.classification || 'NORMAL';
     if (status === 'GENUINE_CRITICAL_RISK' || status === 'GENUINE_CRITICAL_ALARM') {
       cardBorder = 'border-rose-500 glow-rose';

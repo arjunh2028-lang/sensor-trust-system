@@ -50,11 +50,12 @@ export default function App() {
   const selectedAssessment = latestAssessments[selectedSensorId];
   const selectedHistory = historyBuffers[selectedSensorId] || [];
 
-  const fleetTrustPct = summary ? Math.round(summary.overall_system_health * 100) : 98;
+  const isFleetStandby = !summary || summary.active_sensors_count === 0;
+  const fleetTrustPct = summary ? Math.round(summary.overall_system_health * 100) : 100;
   const suppressedCount = summary ? summary.active_suppressed_alarms : 0;
   const genuineCount = summary ? summary.active_critical_alarms : 0;
   const driftCount = summary ? summary.sensors_drifting : 0;
-  const activeCount = summary ? summary.active_sensors_count : 6;
+  const activeCount = summary ? summary.active_sensors_count : 0;
 
   return (
     <div className="bg-[#0a0d14] text-slate-100 min-h-screen flex flex-col antialiased">
@@ -87,11 +88,11 @@ export default function App() {
           <div className="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
             <span
               className={`h-2.5 w-2.5 rounded-full ${
-                isConnected ? 'bg-emerald-500 pulse-indicator' : 'bg-rose-500'
+                isConnected ? (isFleetStandby ? 'bg-amber-400' : 'bg-emerald-500 pulse-indicator') : 'bg-rose-500'
               }`}
             ></span>
             <span className="text-xs font-mono text-slate-300">
-              {isConnected ? 'HTTP POLLING (2s)' : 'CONNECTING...'}
+              {!isConnected ? 'CONNECTING...' : isFleetStandby ? 'STANDBY (NO DATA)' : 'ACTIVE STREAM'}
             </span>
           </div>
 
@@ -126,8 +127,12 @@ export default function App() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Fleet Trust Score</p>
               <div className="flex items-baseline space-x-2 mt-1">
-                <span className="text-2xl font-bold font-mono text-emerald-400">{fleetTrustPct}%</span>
-                <span className="text-xs text-slate-500 font-mono">NOMINAL</span>
+                <span className="text-2xl font-bold font-mono text-emerald-400">
+                  {isFleetStandby ? 'STANDBY' : `${fleetTrustPct}%`}
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  {isFleetStandby ? 'AWAITING CSV' : 'NOMINAL'}
+                </span>
               </div>
             </div>
             <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -200,8 +205,12 @@ export default function App() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Monitored Clusters</p>
               <div className="flex items-baseline space-x-2 mt-1">
-                <span className="text-2xl font-bold font-mono text-cyan-400">{activeCount} / 6</span>
-                <span className="text-xs text-slate-500 font-mono">SECTORS A & B</span>
+                <span className="text-2xl font-bold font-mono text-cyan-400">
+                  {isFleetStandby ? 'STANDBY' : `${activeCount} / 6`}
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  {isFleetStandby ? 'NO CSV DATA' : 'SECTORS A & B'}
+                </span>
               </div>
             </div>
             <div className="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">

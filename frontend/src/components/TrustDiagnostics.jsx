@@ -25,12 +25,13 @@ export function TrustDiagnostics({ assessment }) {
         </div>
         <span
           className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
+            assessment.status === 'STANDBY' ? 'bg-slate-800 text-slate-400 border border-slate-700' :
             trustPct >= 80 ? 'bg-emerald-500/20 text-emerald-400' :
             trustPct >= 60 ? 'bg-amber-500/20 text-amber-400' :
             'bg-rose-500/20 text-rose-400'
           }`}
         >
-          TRUST: {trustPct}%
+          {assessment.status === 'STANDBY' ? 'TRUST: STANDBY' : `TRUST: ${trustPct}%`}
         </span>
       </div>
 

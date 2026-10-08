@@ -136,15 +136,40 @@ class TimeSeriesStorageManager:
             return []
         return list(self.history[sensor_id])[-limit:]
 
+    def reset(self):
+        self.latest_status.clear()
+        for sid in self.registry:
+            self.history[sid].clear()
+        self.alert_logs.clear()
+
     def get_all_status(self) -> List[SensorStatusResponse]:
+        if not self.latest_status:
+            return [
+                SensorStatusResponse(
+                    sensor_id=sid,
+                    trust_score=1.0,
+                    status="STANDBY",
+                    is_false_alarm_suppressed=False,
+                    explanation="Sensor pipeline on standby. Waiting for CSV telemetry stream upload.",
+                    metric_type=meta.metric_type,
+                    value=None,
+                    unit=meta.unit,
+                    location_zone=meta.location_zone,
+                    spatial_consensus_score=1.0,
+                    slew_rate_feasibility=1.0,
+                    drift_metric=0.0,
+                    noise_entropy_score=1.0
+                )
+                for sid, meta in self.registry.items()
+            ]
         return list(self.latest_status.values())
 
     def get_system_summary(self) -> SystemSummaryResponse:
-        statuses = list(self.latest_status.values())
+        statuses = [s for s in self.latest_status.values() if s.status != "STANDBY"]
         if not statuses:
             return SystemSummaryResponse(
                 timestamp=time.time(),
-                active_sensors_count=len(self.registry),
+                active_sensors_count=0,
                 overall_system_health=1.0,
                 active_critical_alarms=0,
                 active_suppressed_alarms=0,

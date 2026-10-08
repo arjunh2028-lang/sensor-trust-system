@@ -40,40 +40,24 @@ engine = DualAssessmentEngine(SPEC_SENSORS)
 simulator = TelemetrySimulator(SPEC_SENSORS)
 
 sim_running = True
+sim_active = False  # Paused by default: do NOT simulate until CSV uploaded or scenario triggered
 
 
 async def background_telemetry_loop():
     """
-    Background simulation worker advancing real-time telemetry every 2 seconds,
-    running through sliding-window ingestion, PyTorch autoencoding, and dual assessment.
+    Background simulation worker advancing real-time telemetry only when sim_active is True.
+    Does NOT simulate values until activated.
     """
-    # Warm-up 20 steps to initialize rolling windows and baselines
-    now_base = time.time() - 40.0
-    for i in range(20):
-        packets = simulator.step(timestamp=now_base + i * 2.0)
-        for p in packets:
-            status, alert = engine.process_telemetry(p)
-            storage.latest_status[p.sensor_id] = status
-            storage.history[p.sensor_id].append({
-                "timestamp": p.epoch_timestamp(),
-                "raw_value": status.value,
-                "baseline_value": status.baseline_value,
-                "confidence_lower": status.confidence_lower,
-                "confidence_upper": status.confidence_upper,
-                "rolling_mean": status.rolling_mean,
-                "rolling_std": status.rolling_std,
-                "reconstruction_error": status.reconstruction_error,
-                "trust_score": status.trust_score,
-                "status": status.status
-            })
-            if alert:
-                storage.log_alert(alert)
-
     while sim_running:
+        if not sim_active:
+            await asyncio.sleep(1.0)
+            continue
+
         try:
             start_t = time.time()
             packets = simulator.step(timestamp=start_t)
             for p in packets:
+                storage.ensure_sensor(p.sensor_id)
                 status, alert = engine.process_telemetry(p)
                 storage.latest_status[p.sensor_id] = status
                 storage.history[p.sensor_id].append({
@@ -250,6 +234,10 @@ async def ingest_csv_telemetry(
             detail=f"CSV header must contain 'sensor_id' and 'reading_value' (found: {header})"
         )
 
+    global sim_active
+    sim_active = False  # keep background simulation disabled so uploaded CSV values remain intact
+    storage.reset()  # clear standby state and load uploaded CSV data
+
     processed_count = 0
     dropped_count = 0
     drift_count = 0
@@ -416,6 +404,8 @@ def inject_fault(req: FaultInjectionRequest):
     Types: 'none', 'gradual_drift', 'transient_spike', 'stuck_flatline',
     'intermittent_packet_loss', 'genuine_environmental_event'.
     """
+    global sim_active
+    sim_active = True
     simulator.inject_fault(req)
     return {
         "status": "success",
@@ -427,9 +417,22 @@ def inject_fault(req: FaultInjectionRequest):
 
 @app.post("/api/v1/simulate/clear")
 def clear_faults():
-    """Clear all active injected faults and return to nominal ambient baseline."""
+    """Clear all active injected faults and return to standby."""
+    global sim_active
+    sim_active = False
     simulator.clear_all_faults()
-    return {"status": "success", "message": "All faults cleared"}
+    storage.reset()
+    return {"status": "success", "message": "All faults cleared, system reset to Standby"}
+
+
+@app.post("/api/v1/telemetry/reset")
+def reset_telemetry():
+    """Reset telemetry storage and keep simulation paused awaiting CSV upload."""
+    global sim_active
+    sim_active = False
+    simulator.clear_all_faults()
+    storage.reset()
+    return {"status": "success", "message": "Reset to Standby awaiting CSV upload"}
 
 
 @app.post("/api/v1/sensors/{sensor_id}/calibrate")

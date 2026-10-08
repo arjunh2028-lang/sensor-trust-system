@@ -84,7 +84,7 @@ class SensorStatusResponse(BaseModel):
 
     # Extended metrics for UI rendering & diagnostics
     metric_type: str = "temperature"
-    value: float = 0.0
+    value: Optional[float] = None
     unit: str = "Celsius"
     rolling_mean: float = 0.0
     rolling_std: float = 0.0
